@@ -13,16 +13,16 @@ class MailCatcher::Web < Sinatra::Base
   set :root, File.expand_path("#{__FILE__}/../../..")
   set :haml, :format => :html5
 
-  get '/' do
+  get '/mailcatcher/' do
     haml :index
   end
 
-  delete '/' do
+  delete '/mailcatcher/' do
     MailCatcher.quit!
     status 204
   end
 
-  get '/messages' do
+  get '/mailcatcher/messages' do
     if request.websocket?
       request.websocket!(
         :on_start => proc do |websocket|
@@ -36,12 +36,12 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  delete '/messages' do
+  delete '/mailcatcher/messages' do
     MailCatcher::Mail.delete!
     status 204
   end
 
-  get '/messages/:id.json' do
+  get '/mailcatcher/messages/:id.json' do
     id = params[:id].to_i
     if message = MailCatcher::Mail.message(id)
       message.merge({
@@ -51,7 +51,7 @@ class MailCatcher::Web < Sinatra::Base
           ("plain" if MailCatcher::Mail.message_has_plain? id),
         ].compact,
         "attachments" => MailCatcher::Mail.message_attachments(id).map do |attachment|
-          attachment.merge({"href" => "/messages/#{escape(id)}/parts/#{escape(attachment['cid'])}"})
+          attachment.merge({"href" => "/mailcatcher/messages/#{escape(id)}/parts/#{escape(attachment['cid'])}"})
         end,
       }).to_json
     else
@@ -59,7 +59,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get '/messages/:id.html' do
+  get '/mailcatcher/messages/:id.html' do
     id = params[:id].to_i
     if part = MailCatcher::Mail.message_part_html(id)
       content_type part["type"], :charset => (part["charset"] || "utf8")
@@ -78,7 +78,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get "/messages/:id.plain" do
+  get "/mailcatcher/messages/:id.plain" do
     id = params[:id].to_i
     if part = MailCatcher::Mail.message_part_plain(id)
       content_type part["type"], :charset => (part["charset"] || "utf8")
@@ -88,7 +88,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get "/messages/:id.source" do
+  get "/mailcatcher/messages/:id.source" do
     id = params[:id].to_i
     if message = MailCatcher::Mail.message(id)
       content_type "text/plain"
@@ -98,7 +98,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get "/messages/:id.eml" do
+  get "/mailcatcher/messages/:id.eml" do
     id = params[:id].to_i
     if message = MailCatcher::Mail.message(id)
       content_type "message/rfc822"
@@ -108,7 +108,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get "/messages/:id/parts/:cid" do
+  get "/mailcatcher/messages/:id/parts/:cid" do
     id = params[:id].to_i
     if part = MailCatcher::Mail.message_part_cid(id, params[:cid])
       content_type part["type"], :charset => (part["charset"] || "utf8")
@@ -119,11 +119,11 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  get "/messages/:id/analysis.?:format?" do
+  get "/mailcatcher/messages/:id/analysis.?:format?" do
     id = params[:id].to_i
     if part = MailCatcher::Mail.message_part_html(id)
       # TODO: Server-side cache? Make the browser cache based on message create time? Hmm.
-      uri = URI.parse("http://api.getfractal.com/api/v2/validate#{"/format/#{params[:format]}" if params[:format].present?}")
+      uri = URI.parse("http://api.getfractal.com/api/v2/validate#{"/mailcatcher/format/#{params[:format]}" if params[:format].present?}")
       response = Net::HTTP.post_form(uri, :api_key => "5c463877265251386f516f7428", :html => part["body"])
       content_type ".#{params[:format]}" if params[:format].present?
       body response.body
@@ -132,7 +132,7 @@ class MailCatcher::Web < Sinatra::Base
     end
   end
 
-  delete '/messages/:id' do
+  delete '/mailcatcher/messages/:id' do
     id = params[:id].to_i
     if message = MailCatcher::Mail.message(id)
       MailCatcher::Mail.delete_message!(id)
